@@ -836,36 +836,31 @@ def separateRule(session, simplerule, verify=True, secure=False):
 def createPathway(session, packageurl, smiles, name=None,
                   description=None, verify=True, secure=False):
     properties = {'smilesinput': smiles, 'name': name, 'description': description, 'rootOnly': 'true'}
-    return createEntity(session, packageurl, 'pathway', properties=properties, secure=secure, verify=verify)
+    return createEntity(session, packageurl, 'pathway', properties=properties, verify=verify, secure=secure)
 
 
 def predictPathway(session, package_url, root_smiles, settings_url=None, hangon=True, verify=True, secure=False):
 
-    headers={"Accept":"application/json"}
-    url="{0}/pathway".format(package_url)
-    complete = "true" if hangon else "false"
+    data = {
+        "smilesinput": root_smiles,
+        "selectedSetting": settings_url
+    }
+    pw = createEntity(session, package_url, 'pathway', properties=data, verify=verify, secure=secure)
+    pwurl = pw["id"]
 
-    data={"smilesinput":root_smiles, "selectedSetting":settings_url}
-    r=session.post(url, data=data, headers=headers, allow_redirects=True, secure=secure, verify=verify)
-    try:
-        location=r.json()["id"]
-    except Exception as ke:
-        try: print(r.json())
-        except: pass
-        raise
-
-    while complete == "false":
-        import time
-        time.sleep(1.0)
-        r=session.get(location, headers=headers, secure=secure, verify=verify)
+    while hangon:
         try:
-            complete=r.json()["completed"]
-            #print(r.json())
+            if pw["completed"].lower() == "true":
+                break
         except Exception as ke:
             from sys import stderr
-            stderr.write("ERROR: couldnt get completeness ({0}) on {1}\n".format(ke.__class__.__name__, location))
+            stderr.write("ERROR: couldnt get completeness ({0}) on {1}\n".format(ke.__class__.__name__, pwurl))
+            break
+        import time
+        time.sleep(5.0)
+        pw = getjson(session, pwurl, verify=verify, secure=secure)
 
-    return r.json()
+    return pw
 
 
 def addCompoundToPathway(session, pathwayurl, smiles, verify=True, secure=False):

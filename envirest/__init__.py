@@ -947,7 +947,7 @@ def add_ec_number(session, rule_url, ec_number, name=None, linking_method=None, 
     _post_ec_number(evidence, description, url=rule_url, mut_data=data)
 
     response = session.post("{}/enzymelink".format(rule_url), data=data, headers=JSONHEADERS, verify=verify)
-    return response
+    return respond_or_raise(response)
 
 
 def update_ec_number(session, eclink_url, ec_number=None, name=None, linking_method=None, evidence=[], description=None,
@@ -964,7 +964,7 @@ def update_ec_number(session, eclink_url, ec_number=None, name=None, linking_met
     _post_ec_number(evidence, description, url=eclink_url, mut_data=data)
 
     response = session.post(eclink_url, data=data, headers=JSONHEADERS, verify=verify)
-    return response
+    return respond_or_raise(response)
 
 
 def _post_ec_number(evidence, description, url, mut_data):

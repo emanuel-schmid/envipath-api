@@ -780,9 +780,9 @@ def updateRule(session, ruleurl,
     if smirks:
         data['smirks'] = smirks
     if name:
-        data['name'] = name
+        data['ruleName'] = name
     if description:
-        data['description'] = description
+        data['ruleDescription'] = description
 
     r = session.post(ruleurl, data=data,
                      headers=JSONHEADERS, verify=verify)

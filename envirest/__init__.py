@@ -114,9 +114,16 @@ class EnviPathClient(object):
     def updaterule(self, simplerule,
             smirks=None,
             name=None,
-            description=None):
+            description=None,
+            aerobiclikelihood=None,
+            immediaterule=False,
+            productfiltersmarts=None,
+            reactantfiltersmarts=None,
+            ):
         return updateRule(self.session, ruleurl=simplerule,
                           smirks=smirks, name=name, description=description,
+                          aerobiclikelihood=aerobiclikelihood, immediaterule=immediaterule,
+                          productfiltersmarts=productfiltersmarts, reactantfiltersmarts=reactantfiltersmarts,
                           secure=self.secure, verify=self.verify)
 
     def combinerules(self, simplerule, compositerule):
@@ -424,7 +431,7 @@ def addScenario(session, url, scenario, verify=True, secure=False):
     try:
         response = session.post(url, data=data, headers=headers,
                                 allow_redirects=True, verify=verify)
-    except Exception as e:
+    except Exception:
         raise
     response.raise_for_status()
     return response
@@ -764,25 +771,37 @@ def createRule(session, packageurl, ruletype='SIMPLE',
                secure=secure, verify=verify)
         except Exception as e:
             from sys import stderr
-            stderr.write("WARNING: failed to rename aerobic likelihood from '{}' to '{}'".format(scenarioname, newname))
+            stderr.write("WARNING: failed to rename aerobic likelihood from '{}' to '{}'\ngot {}: {}".format(
+                scenarioname, newname, e.__class__.__name__, e))
 
 
     return rj
 
 
+def meansTrue(boolstring):
+    if boolstring.lower() in ['yes', 'y', 'true', 't', '1']:
+        return 'true'
+    if boolstring.lower() in ['no', 'n', 'false', 'f', '0']:
+        return 'false'
+    raise Exception("cannot make anything out of {}".format(boolstring))
+
+
 def updateRule(session, ruleurl,
                smirks=None, name=None, description=None,
+               aerobiclikelihood=None, immediaterule=None,
+               productfiltersmarts=None, reactantfiltersmarts=None,
                verify=True, secure=False):
     if secure:
         ruleurl = ruleurl.replace("http://", "https://")
 
     data = {}
-    if smirks:
-        data['smirks'] = smirks
-    if name:
-        data['name'] = name
-    if description:
-        data['description'] = description
+    if smirks: data['smirks'] = smirks
+    if name: data['ruleName'] = name
+    if description: data['ruleDescription'] = description
+    if aerobiclikelihood: data['likelihood'] = aerobiclikelihood
+    if immediaterule: data['immediaterule'] = meansTrue(immediaterule)
+    if productfiltersmarts: data['productFilterSmarts'] = productfiltersmarts
+    if reactantfiltersmarts: data['reactantFilterSmarts'] = reactantfiltersmarts
 
     r = session.post(ruleurl, data=data,
                      headers=JSONHEADERS, verify=verify)
@@ -947,7 +966,7 @@ def add_ec_number(session, rule_url, ec_number, name=None, linking_method=None, 
     _post_ec_number(evidence, description, url=rule_url, mut_data=data)
 
     response = session.post("{}/enzymelink".format(rule_url), data=data, headers=JSONHEADERS, verify=verify)
-    return response
+    return respond_or_raise(response)
 
 
 def update_ec_number(session, eclink_url, ec_number=None, name=None, linking_method=None, evidence=[], description=None,
@@ -964,7 +983,7 @@ def update_ec_number(session, eclink_url, ec_number=None, name=None, linking_met
     _post_ec_number(evidence, description, url=eclink_url, mut_data=data)
 
     response = session.post(eclink_url, data=data, headers=JSONHEADERS, verify=verify)
-    return response
+    return respond_or_raise(response)
 
 
 def _post_ec_number(evidence, description, url, mut_data):

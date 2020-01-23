@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='envipath-api',
-      version='0.1.1.x',
+      version='0.1.2',
       description="wrapper for rest calls to envipath",
       author='Emanuel Schmid',
       author_email='schmide@ethz.ch',

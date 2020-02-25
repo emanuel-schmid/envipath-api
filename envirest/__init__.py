@@ -143,6 +143,27 @@ class EnviPathClient(object):
         return createCompound(self.session, packageurl, smiles, name=name,
             description=description, secure=self.secure, verify=self.verify)
 
+    def createreaction(self, package_url,
+        smirks,
+        name=None,
+        description=None,
+        related_rules=None):
+        return createReaction(self.session, package_url=package_url,
+                              smirks=smirks, name=name, description=description,
+                              related_rules=related_rules,
+                              secure=self.secure, verify=self.verify)
+
+    def updaterreaction(self, reaction_url,
+        smirks=None,
+        name=None,
+        alias=None,
+        description=None,
+        related_rule=None):
+        return updateReaction(self.session, reaction_url=reaction_url,
+                              smirks=smirks, name=name, alias=alias, description=description,
+                              related_rule=related_rule,
+                              secure=self.secure, verify=self.verify)
+
     def createpathway(self, packageurl, smiles, name=None, description=None):
         return createPathway(self.session, packageurl, smiles, name=name,
             description=description, secure=self.secure, verify=self.verify)
@@ -915,7 +936,9 @@ def createEntity(session, packageurl, objectid,
 def respond_or_raise(response, field=None):
     try:
         response.raise_for_status()
-        return response.json().get(field) if field else response.json()
+        return response.json().get(field) if field \
+          else response.json() if response.content \
+          else {}
     except Exception as e:
         try:
             ej = response.json()
@@ -1019,3 +1042,51 @@ def _post_ec_number(evidence, description, url, mut_data):
 def remove_ec_number(session, eclink_url, verify=True, secure=False):
     if secure: eclink_url = eclink_url.replace("http://", "https://")
     session.delete(eclink_url, headers=JSONHEADERS, verify=verify)
+
+
+def updateReaction(session, reaction_url,
+        name=None,
+        alias=None,
+        description=None,
+        related_rule=None,
+        smirks=None,
+        scenario=None,
+        verify=True, secure=False):
+    if secure: reaction_url = reaction_url.replace("http://", "https://")
+
+    data = {}
+    if name: 
+        data['reactionName'] = name
+        data['setAsDefaultName'] = 'setAsDefaultName'
+    elif alias:
+        data['reactionName'] = alias
+    if name and alias:
+        raise Exception("cannot update name and alias at once")
+    if description: data['reactionDescription'] = description
+    if related_rule: data['ruleUri'] = related_rule
+    if smirks: data['smirks'] = smirks
+    if scenario: data['scenario'] = scenario
+
+    response = session.post(reaction_url, data=data, headers=JSONHEADERS, verify=verify)
+    respond_or_raise(response)
+    return session.get(reaction_url, headers=JSONHEADERS, verify=verify).json()
+
+
+def createReaction(session, package_url,
+        name=None,
+        description=None,
+        related_rules=None,
+        smirks=None,
+        scenario=None,
+        verify=True, secure=False):
+    if secure: package_url = package_url.replace("http://", "https://")
+
+    data = {}
+    if name: data['name'] = name
+    if description: data['description'] = description
+    if related_rules: data['rules'] = related_rules
+    if smirks: data['smirks'] = smirks
+    if scenario: data['scenario'] = scenario
+
+    response = session.post("{}/reaction".format(package_url), data=data, headers=JSONHEADERS, verify=verify)
+    return respond_or_raise(response)

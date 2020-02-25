@@ -2,23 +2,32 @@ import unittest
 import re
 from envirest import EnviPathClient
 from getpass import getpass
-USER = 'admin'
-PASS = getpass()
-HOST = 'envipath.org'
+USER = 'anonymous'
 TESTHOST = 'envipath.org:8181'
-PACKAGE = 'EAWAG-SOIL'
+PACKAGE = 'anonymous'
 
 
 class MyTestCase(unittest.TestCase):
 
-    def test_something(self):
-        client = EnviPathClient(host=TESTHOST, username=USER, password=PASS, secure=False, verify=False)
-        scenariourl = "http://envipath.org:8181/package/b4c33235-b30d-4d7c-a8b0-5d1a1d2aff48/scenario/c97a868d-59c6-4cdb-982a-a2492dd031f1"
+    def setUp(self):
+        self.client = EnviPathClient(host=TESTHOST, username=USER, secure=False, verify=False)
+        self.package = self.client.findpackage(PACKAGE)
+
+    def test_scenario(self):
+        
+        scenariourl = self.client.createscenario(self.package, halflife={
+            'lower': 0,
+            'upper': 0,
+            'source': '',
+            'comment': '',
+            'model': '',
+            'fit': ''
+        })
 
         for lower, upper, source, comment, model, fit in [(2.5, 2.5, '', 'some comment; some more', 'SFO', 'chi2'),
                                                           ('4.0E-12', 2.6, '', 'some comment; some more', 'SFO+', '')]:
 
-            whatyouget = client.updatescenario(scenariourl, halflife={
+            whatyouget = self.client.updatescenario(scenariourl, halflife={
                 'lower': lower,
                 'upper': upper,
                 'source': source,
@@ -34,6 +43,18 @@ class MyTestCase(unittest.TestCase):
             assert c == comment.replace(';', '\\;')
             assert lu == ' - '.join([str(_) for _ in [lower, upper]])
             assert s == source.replace(';', '\\;')
+
+        self.client.delete(scenariourl)
+
+    def test_reaction(self):
+        rule = self.client.createrule(self.package, smirks='[Pb]>>[Au]')['id']
+        reaction = self.client.createreaction(self.package, smirks='[Pb]>>[Au]')['id']
+        updated = self.client.updaterreaction(reaction, name='the little alchemist', related_rule=rule)
+        assert updated['rules'][0]['id'] == rule
+        assert updated['name'] == 'the little alchemist'
+        assert updated['smirks'] == '[Pb]>>[Au]'
+        self.client.delete(reaction)
+        self.client.delete(rule)
 
 
 if __name__ == '__main__':

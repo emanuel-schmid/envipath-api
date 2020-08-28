@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from requests import Session
 from getpass import getpass
 
+
 DEFAULT_HOST = "envipath.org"
 ANONYMOUS = "anonymous"
 

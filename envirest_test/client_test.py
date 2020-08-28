@@ -1,7 +1,10 @@
 import unittest
 import re
+
 from envirest import EnviPathClient
 from getpass import getpass
+
+
 USER = 'anonymous'
 TESTHOST = 'envipath.org:8181'
 PACKAGE = 'anonymous'
@@ -56,6 +59,10 @@ class MyTestCase(unittest.TestCase):
         self.client.delete(reaction)
         self.client.delete(rule)
 
+    def test_enviLink(self):
+        client = EnviPathClient('envipath.org')
+        assert len(client.get_enviLink(rule='bt0028')) == 1
+        
 
 if __name__ == '__main__':
     unittest.main()

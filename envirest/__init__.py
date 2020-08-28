@@ -261,6 +261,54 @@ class EnviPathClient(object):
             evidence=evidence,
             description=description,
             verify=self.verify, secure=self.secure)
+    
+    def get_enviLink(self, package=None, rule=None):
+        if not package:
+            package_url = self.findpackage('EAWAG-BBD')
+        elif package.starts_with(self.hosturl):
+            package_url = package
+        else:
+            package_url = self.findpackage(package)
+
+        rules = self.get('{}/rule'.format(package_url))['rule']
+        if rule:
+            rules = [r for r in rules if r['name'] == rule]
+        
+        ecns = []
+        for r in rules:
+            for ecn in self.get(r['id'])['ecNumbers']:
+                ecn['rule'] = r['name']
+                ecns.append(ecn)
+        
+        envi_links = []
+        for ecn in ecns:
+            lvl_3 = ".".join(ecn['ecNumber'].split('.')[:3]+['-'])
+
+            envi_link = self.get(ecn['id'])
+            for evidence in envi_link['linkEvidence']\
+                          + envi_link['reactionLinkEvidence']\
+                          + envi_link['edgeLinkEvidence']:
+                try:
+                    evidence_name = evidence['evidence'].split('>')[1].split('<')[0]
+                    evidence_link = evidence['evidence'].split('"')[1]
+                except IndexError:
+                    evidence_name = evidence['evidence']
+                    evidence_link = None
+                except KeyError:
+                    evidence_name = evidence['name']
+                    evidence_link = evidence['id']
+                envi_links.append({
+                    'id': envi_link['id'],
+                    'rule': ecn['rule'],
+                    'enzyme': envi_link['name'],
+                    'ecNumber': envi_link['ecNumber'],
+                    '3rd_lvl': lvl_3,
+                    'linkingMethod': envi_link['linkingMethod'],
+                    'evidence': evidence_name,
+                    'evidence_link': evidence_link,
+                })
+
+        return envi_links
 
 
 def login(hosturl, username, password, verify=True, secure=False):

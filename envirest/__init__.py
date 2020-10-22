@@ -324,9 +324,8 @@ def login(hosturl, username, password, verify=True, secure=False):
     if secure:
         hosturl = hosturl.replace("http://", "https://")
 
-    response = session.post(hosturl, data=data, headers=TEXTHEADERS, allow_redirects=True,
+    session.post(hosturl, data=data, headers=TEXTHEADERS, allow_redirects=True,
                             verify=verify)
-    #print(response)
     return session
 
 
@@ -400,7 +399,6 @@ def rename(session, object, newname, verify=True, secure=False):
     r = session.post(url, data=data, headers=JSONHEADERS, allow_redirects=True,
                      verify=verify)
     if r.json().get("name") != newname:
-        print(r.json())
         raise Exception("renaming to {} failed for {}".format(newname, object))
 
 
@@ -1089,6 +1087,14 @@ def _post_ec_number(evidence, description, url, mut_data):
 
 
 def remove_ec_number(session, eclink_url, verify=True, secure=False):
+    pieces = eclink_url.split('/')
+    try:
+        assert len(pieces) == 9
+        assert pieces[7] == 'enzymelink'
+        assert pieces[5] in ['parallel-rule', 'sequential-rule', 'simple-rule']
+    except AssertionError:
+        raise ValueError("{} is not part of enviLink".format(eclink_url))
+
     if secure: eclink_url = eclink_url.replace("http://", "https://")
     session.delete(eclink_url, headers=JSONHEADERS, verify=verify)
 

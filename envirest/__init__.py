@@ -264,9 +264,9 @@ class EnviPathClient(object):
             verify=self.verify, secure=self.secure)
     
     def get_enviLink(self, package=None, rule=None):
-        if not package:
+        if package is None:
             package_url = self.findpackage('EAWAG-BBD')
-        elif package.starts_with(self.hosturl):
+        elif package.startswith(self.hosturl):
             package_url = package
         else:
             package_url = self.findpackage(package)

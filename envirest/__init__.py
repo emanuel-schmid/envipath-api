@@ -311,6 +311,9 @@ class EnviPathClient(object):
 
         return envi_links
 
+    def update_pathway(self, pathway_url, **kwargs):
+        return update_pathway(self.session, pathway_url, **kwargs)
+
 
 def login(hosturl, username, password, verify=True, secure=False):
     session = Session()
@@ -1145,3 +1148,24 @@ def createReaction(session, package_url,
 
     response = session.post("{}/reaction".format(package_url), data=data, headers=JSONHEADERS, verify=verify)
     return respond_or_raise(response)
+
+
+def update_pathway(session, pathway_url, description=None, name=None, **kwargs):
+    headers = JSONHEADERS.copy()
+    headers["referer"] = pathway_url
+    
+    params = kwargs
+    
+    if description:
+        params['pathwayDescription'] = description
+
+    if name:
+        params['pathwayName'] = name
+
+    r = session.post(pathway_url, params=params,
+        headers=headers, allow_redirects=True, verify=False)
+
+    if r.status_code == 200:
+        return r.json()
+    else:
+        raise Exception(r.content.decode())

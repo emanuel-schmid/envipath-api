@@ -1150,6 +1150,12 @@ def createReaction(session, package_url,
     return respond_or_raise(response)
 
 
+def url_format(text):
+    return text\
+        .replace("\n", '<br>')\
+        .encode('latin-1')
+
+
 def update_pathway(session, pathway_url, description=None, name=None, **kwargs):
     headers = JSONHEADERS.copy()
     headers["referer"] = pathway_url
@@ -1157,10 +1163,10 @@ def update_pathway(session, pathway_url, description=None, name=None, **kwargs):
     params = kwargs
     
     if description:
-        params['pathwayDescription'] = description
+        params['pathwayDescription'] = url_format(description)
 
     if name:
-        params['pathwayName'] = name
+        params['pathwayName'] = url_format(name)
 
     r = session.post(pathway_url, params=params,
         headers=headers, allow_redirects=True, verify=False)

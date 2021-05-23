@@ -1153,7 +1153,7 @@ def createReaction(session, package_url,
 def url_format(text):
     return text\
         .replace("\n", '<br>')\
-        .encode('latin-1')
+        .encode('UTF-8')
 
 
 def update_pathway(session, pathway_url, description=None, name=None, **kwargs):

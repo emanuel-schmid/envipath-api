@@ -38,7 +38,7 @@ class EnviPathClient(object):
             url = url.replace("http://", "https://")
         r = self.session.delete(url, verify=self.verify)
         if r.status_code > 299:
-            raise Exception("Failed with status code {}, text:\n{}".format(r.status_code, r.text.decode()))
+            raise Exception("Failed with status code {}, text:\n{}".format(r.status_code, r.text))
 
     def get(self, url):
         return getjson(self.session, url, self.verify, secure=self.secure)
@@ -74,24 +74,29 @@ class EnviPathClient(object):
         return addScenario(session=self.session, url=objecturl,
                            scenario=scenariourl, verify=self.verify, secure=self.secure)
 
-    def updatescenario(self, scenariourl,
+    def updatescenario(self, scenariourl, plainname=None, description=None, date=None,
                        soilsource=None, soiltexture1=None, soiltexture2=None,
                        soilclassificationsystem=None, redox=None, acidity=None, temperature=None,
                        waterstoragecapacity=None, humidity=None, omcontent=None, cec=None, bulkdens=None,
                        biomass=None, spikecompoundsmiles=None, spikeconcentration=None, halflife=None,
                        minormajor=None, proposedintermediate=None, confidencelevel=None,
-                       referringscenario=None, enzyme=None,
+                       referringscenario=None, enzyme=None, organism=None,
                        infotypes=[], infodata={}):
-        return updateScenario(self.session, scenario=scenariourl,
+        return updateScenario(self.session, scenario=scenariourl, plainname=plainname, description=description, date=date,
                               soilsource=soilsource, soiltexture1=soiltexture1, soiltexture2=soiltexture2,
                               soilclassificationsystem=soilclassificationsystem, redox=redox, acidity=acidity,
                               temperature=temperature, waterstoragecapacity=waterstoragecapacity, humidity=humidity,
                               omcontent=omcontent, cec=cec, bulkdens=bulkdens, biomass=biomass,
                               spikecompoundsmiles=spikecompoundsmiles, spikeconcentration=spikeconcentration,
                               halflife=halflife, minormajor=minormajor, proposedintermediate=proposedintermediate,
-                              confidencelevel=confidencelevel, referringscenario=referringscenario, enzyme=enzyme,
+                              confidencelevel=confidencelevel, referringscenario=referringscenario,
+                              enzyme=enzyme, organism=organism,
                               addInfoTypes=infotypes, addInfoInput=infodata,
                               verify=self.verify, secure=self.secure)
+
+    def removeAddInf(self, scenariourl, aiurl):
+        return remove_addinf(self.session, scenario_url=scenariourl, ai_url=aiurl,
+                             verify=self.verify, secure=self.secure)
 
     def createrule(self, packageurl,
             ruletype='SIMPLE',
@@ -202,7 +207,8 @@ class EnviPathClient(object):
             proposedintermediate=None,
             confidencelevel=None,
             referringscenario=None,
-            enzyme=None):
+            enzyme=None,
+            organism=None):
         return createScenario(self.session, packageurl,
             plainname=plainname,
             description=description,
@@ -229,6 +235,7 @@ class EnviPathClient(object):
             halflife=halflife,
             referringscenario=referringscenario,
             enzyme=enzyme,
+            organism=organism,
             verify=self.verify,
             secure=self.secure)
 
@@ -442,16 +449,27 @@ def runRule(session, ruleurl, smiles, verify=True, secure=False):
     return r.content.decode().strip().split("\n")
 
 
-def updateScenario(session, scenario, soilsource=None, soiltexture1=None, soiltexture2=None,
+def updateScenario(session, scenario, plainname=None, description=None, date=None,
+        soilsource=None, soiltexture1=None, soiltexture2=None,
         soilclassificationsystem=None, redox=None, acidity=None, temperature=None,
         waterstoragecapacity=None, humidity=None, omcontent=None, cec=None, bulkdens=None,
         biomass=None, spikecompoundsmiles=None, spikeconcentration=None, halflife=None,
-        minormajor=None, proposedintermediate=None, confidencelevel=None, referringscenario=None, enzyme=None,
+        minormajor=None, proposedintermediate=None, confidencelevel=None, referringscenario=None,
+        enzyme=None, organism=None,
         addInfoTypes=[], addInfoInput={}, verify=True, secure=False):
     url = scenario
     if secure:
         url = url.replace("http://", "https://")
-    data = {"updateScenario": "true"}
+   
+    (year, month, day) = date.split('-') if date else (None, None, None)
+    data = {
+        "updateScenario": "true",
+        "scenarioName": plainname,
+        "scenarioDescription": description,
+        "dateYear": year,
+        "dateMonth": month,
+        "dateDay": day,
+    }
     addinfos = collectData(data,
         soilsource=soilsource,
         soiltexture1=soiltexture1,
@@ -473,7 +491,8 @@ def updateScenario(session, scenario, soilsource=None, soiltexture1=None, soilte
         proposedintermediate=proposedintermediate,
         confidencelevel=confidencelevel,
         referringscenario=referringscenario,
-        enzyme=enzyme)
+        enzyme=enzyme,
+        organism=organism)
     for k,v in addInfoInput.items():
         data[k] = v
     if addinfos:
@@ -583,6 +602,7 @@ def createScenario(
         referringscenario=None,
 
         enzyme=None,
+        organism=None,
 
         verify=True,
         secure=False):
@@ -590,11 +610,14 @@ def createScenario(
     url = package+"/scenario"
     if secure:
         url = url.replace("http://", "https://")
+    year, month, day = studydate.split("-")
     data = {
         #scenario
         'studyname': plainname,
         'studydescription': description,
-        'date': studydate,
+        'dateYear': year,
+        'dateMonth': month,
+        'dateDay': day,
         'type': scenariotype,
     }
     addinfos = collectData(data=data,
@@ -618,7 +641,8 @@ def createScenario(
         proposedintermediate=proposedintermediate,
         confidencelevel=confidencelevel,
         referringscenario=referringscenario,
-        enzyme=enzyme)
+        enzyme=enzyme,
+        organism=organism)
 
     # count the blessings
     if addinfos:
@@ -654,7 +678,8 @@ def collectData(data,
         proposedintermediate=None,
         confidencelevel=None,
         referringscenario=None,
-        enzyme=None):
+        enzyme=None,
+        organism=None):
 
     addinfos = []
 
@@ -791,6 +816,10 @@ def collectData(data,
         addinfos.append('enzyme')
         data['enzymeName'] = enzyme['name']
         data['enzymeECNumber'] = enzyme['ECNumber']
+
+    if organism:
+        addinfos.append('initorganism')
+        data['organism'] = organism
 
     return addinfos
 
@@ -1100,6 +1129,19 @@ def remove_ec_number(session, eclink_url, verify=True, secure=False):
 
     if secure: eclink_url = eclink_url.replace("http://", "https://")
     session.delete(eclink_url, headers=JSONHEADERS, verify=verify)
+
+
+def remove_addinf(session, scenario_url, ai_url, verify=True, secure=False):
+    data={
+        'hidden': 'delete', 
+        'aiUri': ai_url,
+    }
+    if secure: scenario_url = scenario_url.replace("http://", "https://")
+    r = session.post(scenario_url, headers=JSONHEADERS, data=data, verify=verify)
+    if r.status_code < 300:
+        return r.json()
+    else:
+        raise Exception("Failed with status code {}, text:\n{}".format(r.status_code, r.text))
 
 
 def updateReaction(session, reaction_url,

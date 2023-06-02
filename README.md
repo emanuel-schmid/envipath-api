@@ -1,8 +1,13 @@
 # envipath-api
+
 ## Installation
+
 pip install envipath-api
+
 ## Example
+
 Get all SMIRKS of a particular Biodegradation Rule
+
 ```python
 from envirest import EnviPathClient
 client = EnviPathClient('envipath.org')

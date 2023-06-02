@@ -40,8 +40,8 @@ class EnviPathClient(object):
         if r.status_code > 299:
             raise Exception("Failed with status code {}, text:\n{}".format(r.status_code, r.text))
 
-    def get(self, url):
-        return getjson(self.session, url, self.verify, secure=self.secure)
+    def get(self, url, timeout=None):
+        return getjson(self.session, url, self.verify, secure=self.secure, timeout=timeout)
 
     def post(self, url, data):
         return post(self.session, url, data, self.verify, secure=self.secure)
@@ -380,16 +380,16 @@ def commonparser(prog, description):
     return parser
 
 
-def getjson(session, url, verify=True, secure=False):
+def getjson(session, url, verify=True, secure=False, timeout=None):
     if secure:
         url = url.replace("http://", "https://")
     r = session.get(url, headers=JSONHEADERS, allow_redirects=True,
-                    verify=verify)
+                    verify=verify, timeout=timeout)
     return r.json()
 
 
-def get(session, url, verify=True, secure=False):
-    return getjson(session=session, url=url, verify=verify, secure=secure)
+def get(session, url, verify=True, secure=False, timeout=None):
+    return getjson(session=session, url=url, verify=verify, secure=secure, timeout=timeout)
 
 
 def post(session, url, data, verify=True, secure=False):
@@ -977,7 +977,7 @@ def predictPathway(session, package_url, root_smiles, settings_url=None, hangon=
             break
         import time
         time.sleep(5.0)
-        pw = getjson(session, pwurl, verify=verify, secure=secure)
+        pw = getjson(session, pwurl, verify=verify, secure=secure, timeout=None)
 
     return pw
 
